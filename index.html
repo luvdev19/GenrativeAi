@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PythonLuv — Gemini Chat</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Marked for markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    :root{
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --primary: #0f766e; /* teal-ish default */
+      --user: #dcfce7;
+      --bot: #f8fafc;
+      --accent: #10b981;
+      --glass: rgba(255,255,255,0.6);
+    }
+    [data-theme="dark"]{
+      --bg: #0b1220;
+      --card: #071427;
+      --muted: #9aa6b2;
+      --primary: #34d399;
+      --user: #052e1f;
+      --bot: #061320;
+      --glass: rgba(255,255,255,0.02);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+    body{background:linear-gradient(180deg,var(--bg),#ffffff);display:flex;align-items:center;justify-content:center;padding:24px;transition:background .25s}
+
+    .app {
+      width:100%;
+      max-width:940px;
+      height:90vh;
+      display:flex;
+      flex-direction:column;
+      border-radius:14px;
+      overflow:hidden;
+      background:linear-gradient(180deg,var(--card),rgba(255,255,255,0.98));
+      box-shadow:0 10px 30px rgba(2,6,23,0.12);
+      transition:background .25s, box-shadow .25s;
+    }
+
+    .header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 18px;
+      border-bottom:1px solid rgba(0,0,0,0.04);
+      background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      gap:12px;
+    }
+    .brand {
+      display:flex;align-items:center;gap:12px;
+    }
+    .logo {
+      width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;
+      background:linear-gradient(135deg,var(--primary),#0ea5a3);
+      box-shadow: 0 6px 14px rgba(16,24,40,0.08);
+    }
+    .title {font-weight:600;font-size:16px;color:var(--muted)}
+    .subtitle {font-size:12px;color:var(--muted);opacity:.8}
+
+    .controls {display:flex;gap:8px;align-items:center}
+    .btn, .toggle, .small {
+      border: none; background: transparent; cursor:pointer; padding:8px;border-radius:8px;
+      display:inline-flex;align-items:center;gap:8px;
+    }
+    .btn:hover, .toggle:hover { background: var(--glass) }
+    .theme-color {width:28px;height:28px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);cursor:pointer}
+
+    .main {
+      display:flex;
+      flex:1;
+      overflow:hidden;
+    }
+
+    .sidebar {
+      width:220px;
+      border-right:1px solid rgba(0,0,0,0.04);
+      padding:12px;
+      background:transparent;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .sidebar .tip {font-size:13px;color:var(--muted)}
+    .new-chat {padding:10px;border-radius:10px;background:linear-gradient(180deg,var(--primary), #0ea5a3);color:white;cursor:pointer;text-align:center;font-weight:600}
+    .theme-row {display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+    .chat-area {flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .messages {
+      flex:1;padding:18px;overflow:auto;scroll-behavior:smooth;display:flex;flex-direction:column;gap:12px;
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,0.01));
+    }
+
+    .msg {
+      display:flex;gap:12px;align-items:flex-end;max-width:85%;
+      opacity:0; transform:translateY(6px); animation:enter .18s ease forwards;
+    }
+    @keyframes enter { to {opacity:1; transform:none} }
+
+    .msg.bot { align-self:flex-start; }
+    .msg.user { align-self:flex-end; flex-direction:row-reverse; }
+
+    .avatar {
+      width:38px;height:38px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;
+      background:linear-gradient(135deg,#64748b,#4b5563);
+    }
+    .bubble {
+      padding:12px 14px;border-radius:12px;line-height:1.45;font-size:14px;white-space:pre-wrap;
+      box-shadow: 0 2px 8px rgba(2,6,23,0.04);
+      max-width:70ch;
+    }
+    .bot .bubble { background:var(--bot); color:var(--muted) }
+    .user .bubble { background:var(--user); color:#052e16 }
+
+    .input-area {padding:12px;border-top:1px solid rgba(0,0,0,0.04);display:flex;gap:10px;align-items:flex-end;background:linear-gradient(180deg,transparent,var(--card))}
+    textarea#input {
+      flex:1;min-height:46px;max-height:200px;padding:12px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);outline:none;resize:none;font-size:15px;background:transparent;
+      color:inherit;
+    }
+    .send {
+      background:linear-gradient(180deg,var(--primary),#059669);color:white;padding:10px 14px;border-radius:10px;border:none;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+      transition:transform .12s ease, box-shadow .12s;
+    }
+    .send:active{ transform:translateY(2px) }
+    .send[disabled]{opacity:.45; cursor:not-allowed}
+
+    .dot {
+      width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:4px;opacity:0.9;
+      animation: bounce 1s infinite;
+    }
+    .dots span{display:inline-block;animation-delay:0s}
+    .dots span:nth-child(2){animation-delay:.12s}
+    .dots span:nth-child(3){animation-delay:.24s}
+    @keyframes bounce {
+      0%{transform:translateY(0);opacity:.4}
+      50%{transform:translateY(-6px);opacity:1}
+      100%{transform:translateY(0);opacity:.4}
+    }
+
+    .footer-hint {font-size:12px;color:var(--muted);padding:8px 14px}
+    .controls-row {display:flex;gap:6px;align-items:center}
+
+    /* small responsive tweaks */
+    @media (max-width:880px){
+      .sidebar{display:none}
+      .app{max-width:100%}
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app" data-theme="light">
+    <div class="header">
+      <div class="brand">
+        <div class="logo">P</div>
+        <div>
+          <div class="title">GenrativeAi</div>
+          <div class="subtitle">Local Gemini chat • fast & private</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="controls-row">
+          <button class="toggle" id="micBtn" title="Dictate (voice)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 2v10"></path><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-14 0"></path></svg></button>
+          <button class="toggle" id="ttsBtn" title="Read aloud (voice)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 5v14"></path><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M5 8h14v8H5z"></path></svg></button>
+
+          <div style="width:10px"></div>
+
+          <div class="theme-row">
+            <div class="theme-color" id="colorPicker" title="Pick accent color" style="background:var(--primary)"></div>
+            <button class="toggle" id="darkToggle" title="Dark / Light">🌙</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="sidebar">
+        <div class="new-chat" id="newChat">+ New chat</div>
+        <div class="tip">Tips: press <b>Enter</b> to send, <b>Shift+Enter</b> for newline.</div>
+        <div style="height:8px"></div>
+        <div class="tip">Saved chats are kept in your browser (local).</div>
+      </div>
+
+      <div class="chat-area">
+        <div id="messages" class="messages"></div>
+
+        <div class="input-area">
+          <textarea id="input" placeholder="Ask me anything..." rows="1"></textarea>
+          <button id="sendBtn" class="send" title="Send (Enter)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M22 2L11 13"></path><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+            <span id="sendLabel">Send</span>
+          </button>
+        </div>
+
+        <div class="footer-hint">Pro tip: Try “Summarize”, “Explain like I’m 5”, or ask for code examples.</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* -------------------------
+   Quick config & helpers
+   ------------------------- */
+const BACKEND = "/prompt"; // change if your backend URL differs
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const sendLabel = document.getElementById('sendLabel');
+const appEl = document.getElementById('app');
+const darkToggle = document.getElementById('darkToggle');
+const colorPicker = document.getElementById('colorPicker');
+const micBtn = document.getElementById('micBtn');
+const ttsBtn = document.getElementById('ttsBtn');
+const newChatBtn = document.getElementById('newChat');
+
+let isTyping=false;
+let recognition=null;
+let ttsEnabled=true;
+
+/* -------------------------
+   Local Storage (history)
+   ------------------------- */
+function loadHistory(){
+  try{
+    const raw = localStorage.getItem('pythonluv_history');
+    const theme = localStorage.getItem('pythonluv_theme');
+    const color = localStorage.getItem('pythonluv_color');
+    if(theme) appEl.setAttribute('data-theme', theme);
+    if(color) document.documentElement.style.setProperty('--primary', color), colorPicker.style.background = color;
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){return []}
+}
+function saveHistory(history){
+  localStorage.setItem('pythonluv_history', JSON.stringify(history));
+}
+let history = loadHistory();
+
+/* -------------------------
+   Render saved messages
+   ------------------------- */
+function renderHistory(){
+  messagesEl.innerHTML = '';
+  history.forEach(item => {
+    addMessageToDOM(item.text, item.from, false);
+  });
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+renderHistory();
+
+/* -------------------------
+   UI helpers
+   ------------------------- */
+function createAvatar(type){
+  const el = document.createElement('div');
+  el.className = 'avatar';
+  if(type==='user'){ el.style.background = 'linear-gradient(135deg,#86efac,#4ade80)'; el.textContent='U'; }
+  else { el.style.background = 'linear-gradient(135deg,#60a5fa,#7c3aed)'; el.textContent='AI'; }
+  return el;
+}
+function addMessageToDOM(text, from='bot', save=true){
+  const wrapper = document.createElement('div');
+  wrapper.className = 'msg ' + (from==='user' ? 'user' : 'bot');
+  const avatar = createAvatar(from);
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  // render markdown for bot, plain for user
+  if(from==='bot'){
+    bubble.innerHTML = marked.parseInline ? marked.parseInline(text) : marked(text);
+  } else {
+    bubble.textContent = text;
+  }
+  wrapper.appendChild(avatar);
+  wrapper.appendChild(bubble);
+  messagesEl.appendChild(wrapper);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  if(save){
+    history.push({ from, text });
+    saveHistory(history);
+  }
+  return bubble;
+}
+
+/* -------------------------
+   Typing indicator
+   ------------------------- */
+function addTyping(){
+  const wrapper = document.createElement('div');
+  wrapper.className = 'msg bot typing';
+  wrapper.id = 'typing';
+  const avatar = createAvatar('bot');
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = `<div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Gemini is thinking</div>`;
+  wrapper.appendChild(avatar);
+  wrapper.appendChild(bubble);
+  messagesEl.appendChild(wrapper);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+function removeTyping(){
+  const el = document.getElementById('typing');
+  if(el) el.remove();
+}
+
+/* -------------------------
+   Send flow
+   ------------------------- */
+async function sendPrompt(){
+  if(isTyping) return;
+  const prompt = inputEl.value.trim();
+  if(!prompt) return;
+  // Add user message immediately
+  addMessageToDOM(prompt, 'user', true);
+  inputEl.value = '';
+  inputEl.focus();
+
+  // Show typing/loading
+  addTyping();
+  isTyping = true;
+  sendBtn.disabled = true;
+
+  try{
+    // POST to backend
+    const res = await fetch(BACKEND, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    removeTyping();
+    if(data && data.response){
+      // add bot message with typing effect
+      await typeOut(data.response);
+      // optionally speak
+      if(ttsEnabled) speakText(data.response);
+      isTyping = false;
+      sendBtn.disabled = false;
+    } else {
+      addMessageToDOM('Error: ' + (data.error || 'No response'), 'bot', true);
+      isTyping = false;
+      sendBtn.disabled = false;
+    }
+  }catch(err){
+    removeTyping();
+    addMessageToDOM('Request failed: ' + err.message, 'bot', true);
+    isTyping = false;
+    sendBtn.disabled = false;
+  }
+}
+
+/* -------------------------
+   Typewriter for bot (fast)
+   ------------------------- */
+function typeOut(text){
+  return new Promise(resolve=>{
+    const bubble = addMessageToDOM('', 'bot', true);
+    let i = 0;
+    const speed = 10; // ms per character (smaller = faster)
+    function step(){
+      if(i < text.length){
+        bubble.innerHTML = marked.parseInline ? marked.parseInline(text.slice(0,i+1)) : marked(text.slice(0,i+1));
+        i++;
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        setTimeout(step, speed);
+      } else {
+        resolve();
+      }
+    }
+    step();
+  });
+}
+
+/* -------------------------
+   Speech-to-text (dictation)
+   ------------------------- */
+function supportSpeech(){
+  return ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
+}
+if(supportSpeech()){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    inputEl.value = (inputEl.value ? inputEl.value + ' ' : '') + text;
+    inputEl.focus();
+  };
+  recognition.onerror = (e) => { console.log('Speech error', e); };
+}
+micBtn.addEventListener('click', ()=>{
+  if(!recognition){ alert('Speech recognition not supported in this browser.'); return; }
+  try{
+    recognition.start();
+  }catch(e){}
+});
+
+/* -------------------------
+   Text-to-speech (TTS)
+   ------------------------- */
+function speakText(text){
+  if(!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  u.rate = 1; // normal speed
+  u.pitch = 1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+ttsBtn.addEventListener('click', ()=>{
+  ttsEnabled = !ttsEnabled;
+  ttsBtn.style.opacity = ttsEnabled ? '1' : '0.4';
+});
+
+/* -------------------------
+   Keyboard & input helpers
+   ------------------------- */
+inputEl.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendPrompt();
+  }
+});
+inputEl.addEventListener('input', ()=>{
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + 'px';
+});
+
+/* -------------------------
+   Theme & color picker
+   ------------------------- */
+darkToggle.addEventListener('click', ()=>{
+  const cur = appEl.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  appEl.setAttribute('data-theme', cur);
+  localStorage.setItem('pythonluv_theme', cur);
+});
+
+colorPicker.addEventListener('click', async ()=>{
+  // simple color prompt
+  const c = prompt('Enter a hex color for accent (e.g. #10b981):', getComputedStyle(document.documentElement).getPropertyValue('--primary').trim());
+  if(c){
+    document.documentElement.style.setProperty('--primary', c);
+    colorPicker.style.background = c;
+    localStorage.setItem('pythonluv_color', c);
+  }
+});
+
+/* -------------------------
+   New chat (clear)
+   ------------------------- */
+newChatBtn.addEventListener('click', ()=>{
+  if(!confirm('Start a new chat? This will clear saved history.')) return;
+  history = [];
+  saveHistory(history);
+  renderHistory();
+});
+
+/* -------------------------
+   Small helper: load messages from history
+   ------------------------- */
+function renderHistory(){
+  messagesEl.innerHTML = '';
+  history.forEach(m => addMessageToDOM(m.text, m.from, false));
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+renderHistory();
+
+/* -------------------------
+   Auto focus
+   ------------------------- */
+window.addEventListener('load', ()=> inputEl.focus());
+sendBtn.addEventListener('click', sendPrompt);
+
+</script>
+</body>
+</html>
