@@ -5,7 +5,7 @@ import google.generativeai as genai
 app = Flask(__name__, static_folder="static")
 
 # Set Gemini API key
-genai.configure(api_key="AIzaSyBkBT9t8f79wtNwlFoEXXMo4A7Les7dXnk")
+
 
 # Load model once (fast response)
 model = genai.GenerativeModel("gemini-1.5-flash")
